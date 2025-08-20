@@ -8,6 +8,7 @@ import io.wispforest.gadget.util.ProgressToast;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.*;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.login.LoginQueryResponseC2SPacket;
@@ -106,10 +107,7 @@ public class PacketDumpDeserializer {
                 } else if (packet instanceof LoginQueryResponseC2SPacket res) {
                     channelId = loginQueryChannels.get(res.queryId());
                 } else if (packet instanceof GadgetDynamicRegistriesPacket dyn) {
-                    var staticRegistries = DynamicRegistryManager.of(Registries.REGISTRIES);
-                    var network = RegistryLoader.loadFromNetwork(dyn.registries(), ResourceFactory.MISSING, DynamicRegistryManager.of(Registries.REGISTRIES), RegistryLoader.SYNCED_REGISTRIES);
-
-                    registries = new DynamicRegistryManager.ImmutableImpl(Stream.of(staticRegistries.streamAllRegistries(), network.streamAllRegistries()).flatMap(Function.identity()));
+                    registries = MinecraftClient.getInstance().world.getRegistryManager();
                 }
 
                 if (packet instanceof FakeGadgetPacket fake && fake.isVirtual()) continue;
@@ -149,7 +147,7 @@ public class PacketDumpDeserializer {
 
             case PLAY ->
                 switch (side) {
-                    case SERVERBOUND -> PlayStateFactories.C2S.bind(RegistryByteBuf.makeFactory(registries));
+                    case SERVERBOUND -> PlayStateFactories.C2S.bind(RegistryByteBuf.makeFactory(registries), null);
                     case CLIENTBOUND -> PlayStateFactories.S2C.bind(RegistryByteBuf.makeFactory(registries));
                 };
         };

@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.7-SNAPSHOT'
+	id 'fabric-loom' version "${loom_version}"
 	id 'maven-publish'
 }
 
@@ -7,7 +7,7 @@ sourceCompatibility = JavaVersion.VERSION_21
 targetCompatibility = JavaVersion.VERSION_21
 
 archivesBaseName = project.archives_base_name
-version = "${project.mod_version}+${project.minecraft_base_version}"
+version = "${project.mod_version}+${project.minecraft_version}"
 group = project.maven_group
 
 repositories {
@@ -65,7 +65,7 @@ dependencies {
 
 	modCompileOnly "me.shedaniel:RoughlyEnoughItems-api-fabric:${project.rei_version}"
 
-	modCompileOnly "org.quiltmc:quiltflower:${project.quiltflower}"
+	modCompileOnly "org.vineflower:vineflower:${project.vineflower}"
 
 	modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
 

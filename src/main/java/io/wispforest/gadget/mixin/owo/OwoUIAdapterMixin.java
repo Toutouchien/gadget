@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(OwoUIAdapter.class)
 public abstract class OwoUIAdapterMixin implements Drawable, Element {
-    @Inject(method = {"render", "method_25394"}, at = @At("HEAD"))
+    @Inject(method = {"render", "drawTooltip"}, at = @At("HEAD"))
     private void reset(DrawContext ctx, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         ComponentEventCounter.reset();
     }
@@ -28,7 +28,7 @@ public abstract class OwoUIAdapterMixin implements Drawable, Element {
         ComponentEventCounter.tally();
     }
 
-    @Inject(method = {"render", "method_25394"}, at = @At("RETURN"))
+    @Inject(method = {"render", "drawTooltip"}, at = @At("RETURN"))
     private void tally(DrawContext ctx, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         ComponentEventCounter.tally();
     }

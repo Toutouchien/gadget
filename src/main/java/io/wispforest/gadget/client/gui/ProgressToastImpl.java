@@ -8,6 +8,7 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.toast.Toast;
 import net.minecraft.client.toast.ToastManager;
@@ -26,34 +27,36 @@ public class ProgressToastImpl implements Toast, ProgressToast {
     private LongSupplier following = null;
     private long followingTotal = 0;
 
+    private Visibility visibility = Visibility.HIDE;
+
     public ProgressToastImpl(Text headText) {
         this.adapter = OwoUIAdapter.createWithoutScreen(0, 0, 160, 32, Containers::verticalFlow);
 
         var root = this.adapter.rootComponent;
 
         root
-            .child(Components.label(headText)
-                .maxWidth(160)
-                .horizontalTextAlignment(HorizontalAlignment.CENTER)
-                .margins(Insets.bottom(0)))
-            .child(stepLabel = Components.label(Text.empty())
-                .maxWidth(160)
-                .horizontalTextAlignment(HorizontalAlignment.CENTER))
-            .child((progressBox = Components.box(Sizing.fixed(0), Sizing.fixed(3)))
-                .color(Color.WHITE)
-                .fill(true)
-                .positioning(Positioning.absolute(0, 15)))
-            .surface(Surface.VANILLA_TRANSLUCENT.and(Surface.outline(0xFF5800FF)))
-            .allowOverflow(true)
-            .horizontalAlignment(HorizontalAlignment.CENTER)
-            .verticalAlignment(VerticalAlignment.CENTER)
-            .padding(Insets.of(10));
+                .child(Components.label(headText)
+                        .maxWidth(160)
+                        .horizontalTextAlignment(HorizontalAlignment.CENTER)
+                        .margins(Insets.bottom(0)))
+                .child(stepLabel = Components.label(Text.empty())
+                        .maxWidth(160)
+                        .horizontalTextAlignment(HorizontalAlignment.CENTER))
+                .child((progressBox = Components.box(Sizing.fixed(0), Sizing.fixed(3)))
+                        .color(Color.WHITE)
+                        .fill(true)
+                        .positioning(Positioning.absolute(0, 15)))
+                .surface(Surface.VANILLA_TRANSLUCENT.and(Surface.outline(0xFF5800FF)))
+                .allowOverflow(true)
+                .horizontalAlignment(HorizontalAlignment.CENTER)
+                .verticalAlignment(VerticalAlignment.CENTER)
+                .padding(Insets.of(10));
 
         this.adapter.inflateAndMount();
     }
 
     @Override
-    public Visibility draw(DrawContext ctx, ToastManager manager, long startTime) {
+    public void draw(DrawContext context, TextRenderer textRenderer, long startTime) {
         long value = following == null ? -1 : following.getAsLong();
 
         if (value < 0) {
@@ -63,18 +66,28 @@ public class ProgressToastImpl implements Toast, ProgressToast {
             progressBox.horizontalSizing(Sizing.fixed((int) (value * 140 / followingTotal)));
         }
 
-        this.adapter.render(ctx, 0, 0, client.getRenderTickCounter().getTickDelta(false));
+        this.adapter.render(context, 0, 0, client.getRenderTickCounter().getTickProgress(false));
+    }
 
-        if (stopTime == -1)
-            stopTime = startTime + 1;
-        else if (stopTime == -2)
-            return Visibility.HIDE;
+    @Override
+    public void update(ToastManager manager, long time) {
+        if (stopTime == -1) {
+            stopTime = time + 1;
+        } else if (stopTime == -2) {
+            this.visibility = Visibility.HIDE;
+            return;
+        }
 
         if (stopTime == 0) {
-            return Visibility.SHOW;
+            this.visibility = Visibility.SHOW;
         } else {
-            return startTime - stopTime > 2500 ? Visibility.HIDE : Visibility.SHOW;
+            this.visibility = time - stopTime > 2500 ? Visibility.HIDE : Visibility.SHOW;
         }
+    }
+
+    @Override
+    public Visibility getVisibility() {
+        return this.visibility;
     }
 
     @Override

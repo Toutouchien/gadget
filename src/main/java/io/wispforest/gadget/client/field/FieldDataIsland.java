@@ -70,7 +70,7 @@ public class FieldDataIsland extends FieldDataHolder<ClientFieldDataNode> {
 
             if (data.isMixin())
                 nameText.formatted(Formatting.GRAY)
-                    .styled(x -> x.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    .styled(x -> x.withHoverEvent(new HoverEvent.ShowText(
                         Text.literal("Mixin-injected field")
                             .formatted(Formatting.YELLOW))));
 
@@ -82,99 +82,105 @@ public class FieldDataIsland extends FieldDataHolder<ClientFieldDataNode> {
 
             row.child(rowLabel);
 
-            if (data.obj() instanceof PrimitiveFieldObject pfo) {
-                if (!data.isFinal() && source.isMutable() && pfo.editData().isPresent()) {
-                    rowText.append(Text.literal(" = ")
-                        .formatted(Formatting.GRAY));
-                    row.child(new PrimitiveFieldWidget(this, path, pfo));
-                } else {
-                    rowText.append(Text.literal(" = " + pfo.contents())
-                        .formatted(Formatting.GRAY));
+            switch (data.obj()) {
+                case PrimitiveFieldObject pfo -> {
+                    if (!data.isFinal() && source.isMutable() && pfo.editData().isPresent()) {
+                        rowText.append(Text.literal(" = ")
+                                .formatted(Formatting.GRAY));
+                        row.child(new PrimitiveFieldWidget(this, path, pfo));
+                    } else {
+                        rowText.append(Text.literal(" = " + pfo.contents())
+                                .formatted(Formatting.GRAY));
+                    }
                 }
-            } else if (data.obj() instanceof ErrorFieldObject efo) {
-                rowText.append(Text.literal(" " + efo.exceptionClass())
-                    .styled(x -> x
-                        .withColor(Formatting.RED)
-                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.of(efo.fullExceptionText())))));
-            } else if (data.obj() instanceof ComplexFieldObject cfo) {
-                var subContainer = new SubObjectContainer(
-                    container -> {
-                        node.ensureChildren()
-                            .thenAcceptAsync(newChildren -> addChildrenTo(container, newChildren),
-                                MinecraftClient.getInstance());
-                    },
-                    SubObjectContainer::clearChildren);
-                node.subObjectContainer = subContainer;
-                node.containerComponent.child(subContainer);
+                case ErrorFieldObject efo -> rowText.append(Text.literal(" " + efo.exceptionClass())
+                        .styled(x -> x
+                                .withColor(Formatting.RED)
+                                .withHoverEvent(new HoverEvent.ShowText(Text.of(efo.fullExceptionText())))));
+                case ComplexFieldObject cfo -> {
+                    var subContainer = new SubObjectContainer(
+                            container -> {
+                                node.ensureChildren()
+                                        .thenAcceptAsync(newChildren -> addChildrenTo(container, newChildren),
+                                                MinecraftClient.getInstance());
+                            },
+                            SubObjectContainer::clearChildren);
+                    node.subObjectContainer = subContainer;
+                    node.containerComponent.child(subContainer);
 
-                String text = cfo.text();
+                    String text = cfo.text();
 
-                if (shortenNames)
-                    text = text.substring(text.lastIndexOf('.') + 1);
+                    if (shortenNames)
+                        text = text.substring(text.lastIndexOf('.') + 1);
 
-                rowText.append(
-                    Text.literal(" " + text + " ")
-                        .formatted(Formatting.GRAY)
-                );
-
-                if (!cfo.isRepeat()) {
-                    row
-                        .child(subContainer.getSpinnyBoi()
-                            .sizing(Sizing.fixed(10), Sizing.content()));
-                }
-            } else if (data.obj() instanceof NbtCompoundFieldObject nfo) {
-                var subContainer = new SubObjectContainer(
-                    unused -> {
-                    },
-                    unused -> {
-                    });
-                node.subObjectContainer = subContainer;
-                node.containerComponent.child(subContainer);
-
-                Consumer<NbtCompound> reloader = null;
-
-                if (source.isMutable())
-                    reloader = newData -> source.setNbtCompoundAt(path, newData);
-
-                var island = new NbtDataIsland(nfo.data(), reloader);
-
-                subContainer.child(island);
-
-                row
-                    .child(subContainer.getSpinnyBoi()
-                        .sizing(Sizing.fixed(10), Sizing.content()));
-
-                if (source.isMutable()) {
-                    var plusLabel = Components.label(Text.of("+"));
-
-                    GuiUtil.semiButton(plusLabel, (mouseX, mouseY) ->
-                        island.typeSelector(
-                            (int) (plusLabel.x() + mouseX),
-                            (int) (plusLabel.y() + mouseY),
-                            type -> subContainer.child(new KeyAdderWidget(island, NbtPath.EMPTY, type, unused -> true)))
+                    rowText.append(
+                            Text.literal(" " + text + " ")
+                                    .formatted(Formatting.GRAY)
                     );
 
-                    row.child(plusLabel);
+                    if (!cfo.isRepeat()) {
+                        row
+                                .child(subContainer.getSpinnyBoi()
+                                        .sizing(Sizing.fixed(10), Sizing.content()));
+                    }
                 }
-            } else if (data.obj() instanceof BytesFieldObject bfo) {
-                var subContainer = new SubObjectContainer(
-                    unused -> {
-                    },
-                    unused -> {
-                    });
-                node.subObjectContainer = subContainer;
-                node.containerComponent.child(subContainer);
+                case NbtCompoundFieldObject nfo -> {
+                    var subContainer = new SubObjectContainer(
+                            unused -> {
+                            },
+                            unused -> {
+                            });
+                    node.subObjectContainer = subContainer;
+                    node.containerComponent.child(subContainer);
 
-                rowText.append(
-                    Text.literal(" " + bfo.text() + " ")
-                        .formatted(Formatting.GRAY)
-                );
+                    Consumer<NbtCompound> reloader = null;
 
-                subContainer.child(GuiUtil.hexDump(bfo.data(), false));
+                    if (source.isMutable())
+                        reloader = newData -> source.setNbtCompoundAt(path, newData);
 
-                row
-                    .child(subContainer.getSpinnyBoi()
-                        .sizing(Sizing.fixed(10), Sizing.content()));
+                    var island = new NbtDataIsland(nfo.data(), reloader);
+
+                    subContainer.child(island);
+
+                    row
+                            .child(subContainer.getSpinnyBoi()
+                                    .sizing(Sizing.fixed(10), Sizing.content()));
+
+                    if (source.isMutable()) {
+                        var plusLabel = Components.label(Text.of("+"));
+
+                        GuiUtil.semiButton(plusLabel, (mouseX, mouseY) ->
+                                island.typeSelector(
+                                        (int) (plusLabel.x() + mouseX),
+                                        (int) (plusLabel.y() + mouseY),
+                                        type -> subContainer.child(new KeyAdderWidget(island, NbtPath.EMPTY, type, unused -> true)))
+                        );
+
+                        row.child(plusLabel);
+                    }
+                }
+                case BytesFieldObject bfo -> {
+                    var subContainer = new SubObjectContainer(
+                            unused -> {
+                            },
+                            unused -> {
+                            });
+                    node.subObjectContainer = subContainer;
+                    node.containerComponent.child(subContainer);
+
+                    rowText.append(
+                            Text.literal(" " + bfo.text() + " ")
+                                    .formatted(Formatting.GRAY)
+                    );
+
+                    subContainer.child(GuiUtil.hexDump(bfo.data(), false));
+
+                    row
+                            .child(subContainer.getSpinnyBoi()
+                                    .sizing(Sizing.fixed(10), Sizing.content()));
+                }
+                default -> {
+                }
             }
 
             if (path.last() instanceof FieldPathStep step) {

@@ -1,11 +1,11 @@
 package io.wispforest.gadget.mixin.owo;
 
 import io.wispforest.gadget.client.gui.BasedVerticalFlowLayout;
+import io.wispforest.gadget.util.CustomScissorStack;
 import io.wispforest.owo.ui.core.AnimatableProperty;
 import io.wispforest.owo.ui.core.Component;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.ParentComponent;
-import io.wispforest.owo.ui.util.ScissorStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,14 +23,14 @@ public interface ParentComponentMixin extends Component {
     private void mald1(float delta, int mouseX, int mouseY, CallbackInfo ci) {
         if (!this.allowOverflow()) {
             var padding = this.padding().get();
-            ScissorStack.push(this.x() + padding.left(), this.y() + padding.top(), this.width() - padding.horizontal(), this.height() - padding.vertical(), null);
+            CustomScissorStack.push(this.x() + padding.left(), this.y() + padding.top(), this.width() - padding.horizontal(), this.height() - padding.vertical());
         }
     }
 
     @Redirect(method = "update", at = @At(value = "INVOKE", target = "Lio/wispforest/owo/ui/core/Component;update(FII)V"))
     private void mald2(Component instance, float delta, int mouseX, int mouseY) {
         if (this instanceof BasedVerticalFlowLayout) {
-            if (!ScissorStack.isVisible(instance, null))
+            if (!CustomScissorStack.isVisible(instance))
                 return;
         }
 
@@ -40,7 +40,7 @@ public interface ParentComponentMixin extends Component {
     @Inject(method = "update", at = @At("RETURN"))
     private void mald3(float delta, int mouseX, int mouseY, CallbackInfo ci) {
         if (!this.allowOverflow()) {
-            ScissorStack.pop();
+            CustomScissorStack.pop();
         }
     }
 }
